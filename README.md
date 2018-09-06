@@ -29,3 +29,14 @@ Forum discussion: https://forum.unity.com/threads/physics-in-pure-ecs.531716/
 - Fix Constraint Solver giving things too much friction (?)
 - Optimize broadphase's "BuildCollisionPairsParallel" job. This is by far the most costly thing right now, and I feel like there must be a way to make it much faster. Try simply commenting out the line where we do "CollisionPairsQueue.Enqueue(newPair);" and you'll see that the job is now 100X faster. Cache misses are probably to blame here (?)
 - Put debug tools in their own separated editor-only systems
+
+# TODO List (long-term)
+- Support multiple contact points per manifold
+- rigidbody sleep mecanism
+- Capsule colliders
+- GJK and EPA for mesh colliders
+- Physics queries (raycasts, overlaps, etc...)
+- Joints
+- Collision events system
+- Collision layers & filtering
+- Cloth
