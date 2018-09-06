@@ -9,7 +9,8 @@ Forum discussion: https://forum.unity.com/threads/physics-in-pure-ecs.531716/
 # Overview
 - "TestScene" is the main test scene. Press play to see the physics simulation happen. Modify the parameters under the "Init" GameObject in the scene (The "PhysxBenchmark" scene is for comparing with Unity's built-in physics)
 - There are some additional settings stored in "\PhysicsEngine\Data\Resources\DefaultPhysicsSettings" ScriptableObject. It's possible not everything in there actually works
-- Everything starts from "PhysicsSystem". This is where the fixed update is called and all other systems are manually called from it:
+- Everything in the scene starts with "TestSceneInitializer", which spawns the physics objects
+- The physics simulation is all done through "PhysicsSystem". This is where the fixed update is called and all other systems are manually called from it:
   - GlobalGravitySystem: Modifies rigidbody velocities to simulate gravity
   - RigidBodySystem: handles moving rigidbodies based on their velocity
   - UpdateColliderPoseSystem: handles making colliders follow their parented rigidbody (this is still incomplete, might be replaced with new Transform System later)
