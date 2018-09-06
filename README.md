@@ -22,7 +22,7 @@ Forum discussion: https://forum.unity.com/threads/physics-in-pure-ecs.531716/
   - ContactsGenerationSystem: This system's jobs is to take all collision pairs from the previous step and do the actual collision test on them to generate "CollisionManifold"s
   - ConstraintSolverSystem: uses the CollisionManifolds and feeds them to a constraints solver that will compute a set of forces to apply to all rigidbodies in response to the constraints
   
-# TODO List (short-term)
+# TODO (short-term)
 - Box colliders
 - Rotations/Angular velocity/Moment of Inertia
 - friction and coefficient of restitution
@@ -30,7 +30,7 @@ Forum discussion: https://forum.unity.com/threads/physics-in-pure-ecs.531716/
 - Optimize broadphase's "BuildCollisionPairsParallel" job. This is by far the most costly thing right now, and I feel like there must be a way to make it much faster. Try simply commenting out the line where we do "CollisionPairsQueue.Enqueue(newPair);" and you'll see that the job is now 100X faster. Cache misses are probably to blame here (?)
 - Put debug tools in their own separated editor-only systems
 
-# TODO List (long-term)
+# TODO (long-term)
 - Support multiple contact points per manifold
 - rigidbody sleep mecanism
 - Capsule colliders
@@ -40,3 +40,8 @@ Forum discussion: https://forum.unity.com/threads/physics-in-pure-ecs.531716/
 - Collision events system
 - Collision layers & filtering
 - Cloth
+
+# TODO (always)
+- Design improvements
+- Optimization
+- Cleanup
