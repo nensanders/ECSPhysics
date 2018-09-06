@@ -27,5 +27,5 @@ Forum discussion: https://forum.unity.com/threads/physics-in-pure-ecs.531716/
 - Rotations/Angular velocity/Moment of Inertia
 - friction and coefficient of restitution
 - Fix Constraint Solver giving things too much friction (?)
-- Optimize broadphase's "BuildCollisionPairsParallel" job. This is by far the most costly thing right now, and I feel like there must be a way to make it much faster. Try simply commenting out the line where we do "CollisionPairsQueue.Enqueue(newPair);" and you'll see that the job is now 100X faster. So it's not the actual algorithm that's costly; it's the writing to a queue.
+- Optimize broadphase's "BuildCollisionPairsParallel" job. This is by far the most costly thing right now, and I feel like there must be a way to make it much faster. Try simply commenting out the line where we do "CollisionPairsQueue.Enqueue(newPair);" and you'll see that the job is now 100X faster. Cache misses are probably to blame here (?)
 - Put debug tools in their own separated editor-only systems
