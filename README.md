@@ -23,7 +23,7 @@ Forum discussion: https://forum.unity.com/threads/physics-in-pure-ecs.531716/
   - ConstraintSolverSystem: uses the CollisionManifolds and feeds them to a constraints solver that will compute a set of forces to apply to all rigidbodies in response to the constraints
   
 # TODO list
-### short-term
+### Short-term
 - Box colliders
 - Rotations/Angular velocity/Moment of Inertia
 - friction and coefficient of restitution
