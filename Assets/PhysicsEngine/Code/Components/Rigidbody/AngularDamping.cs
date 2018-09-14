@@ -6,7 +6,7 @@ using Unity.Mathematics;
 
 namespace PhysicsEngine
 {
-    public struct AngularDrag : IComponentData
+    public struct AngularDamping : IComponentData
     {
         public float Value;
     }

@@ -6,7 +6,8 @@ using Unity.Mathematics;
 
 namespace PhysicsEngine
 {
-    public struct GlobalGravity : IComponentData
+    public struct LinearDamping : IComponentData
     {
+        public float Value;
     }
 }

@@ -138,14 +138,13 @@ namespace PhysicsEngine
 
         [Inject] PhysicsSystem PhysicsSystem;
 
+        private NativeQueue<Constraint> ConstraintsQueue;
+
         [BurstCompile]
         struct BuildSystemConstraints : IJob
         {
-            public NativeCounter ConstraintsCounter;
-            [WriteOnly] public NativeArray<Constraint> ConstraintsArray;
-
+            [WriteOnly] public NativeQueue<Constraint> ConstraintsQueue;
             [ReadOnly] public NativeArray<CollisionManifold> CollisionManifoldsArray;
-
             [ReadOnly] public ComponentDataFromEntity<RigidBody> RigidBodyFromEntity;
 
             public void Execute()
@@ -156,21 +155,21 @@ namespace PhysicsEngine
                     float3 comAToContactPoint = (CollisionManifoldsArray[i].ContactPointA - RigidBodyFromEntity[CollisionManifoldsArray[i].RigidBodyEntityA].CenterOfMass);
                     float3 comBToContactPoint = (CollisionManifoldsArray[i].ContactPointB - RigidBodyFromEntity[CollisionManifoldsArray[i].RigidBodyEntityB].CenterOfMass);
 
-                    ConstraintsArray[ConstraintsCounter.Count] = new Constraint
-                    {
-                        ConstraintJacobianMatrix = new float12
+                    ConstraintsQueue.Enqueue(
+                        new Constraint
                         {
-                            aa = -CollisionManifoldsArray[i].CollisionNormalAToB,
-                            ab = -math.cross(comAToContactPoint, CollisionManifoldsArray[i].CollisionNormalAToB),
-                            ba = CollisionManifoldsArray[i].CollisionNormalAToB,
-                            bb = math.cross(comBToContactPoint, CollisionManifoldsArray[i].CollisionNormalAToB),
-                        },
-                        RigidbodyA = CollisionManifoldsArray[i].RigidBodyEntityA,
-                        RigidbodyB = CollisionManifoldsArray[i].RigidBodyEntityB,
-                        BaumgarteDepth = CollisionManifoldsArray[i].OverlapDistance,
-                    };
-
-                    ConstraintsCounter.Increment();
+                            ConstraintJacobianMatrix = new float12
+                            {
+                                aa = -CollisionManifoldsArray[i].CollisionNormalAToB,
+                                ab = -math.cross(comAToContactPoint, CollisionManifoldsArray[i].CollisionNormalAToB),
+                                ba = CollisionManifoldsArray[i].CollisionNormalAToB,
+                                bb = math.cross(comBToContactPoint, CollisionManifoldsArray[i].CollisionNormalAToB),
+                            },
+                            RigidbodyA = CollisionManifoldsArray[i].RigidBodyEntityA,
+                            RigidbodyB = CollisionManifoldsArray[i].RigidBodyEntityB,
+                            BaumgarteDepth = CollisionManifoldsArray[i].OverlapDistance,
+                        }
+                    );
                 }
             }
         }
@@ -186,7 +185,6 @@ namespace PhysicsEngine
             public ComponentDataFromEntity<Velocity> VelocityFromEntity;
             public ComponentDataFromEntity<AngularVelocity> AngularVelocityFromEntity;
             
-            public NativeCounter ConstraintsCounter;
             [ReadOnly] public NativeArray<Constraint> ConstraintsArray;
 
             public void Execute()
@@ -194,7 +192,7 @@ namespace PhysicsEngine
                 for (int iteration = 0; iteration < IterationsCount; iteration++)
                 {
                     // For each constraint....
-                    for (int i = 0; i < ConstraintsCounter.Count; i++)
+                    for (int i = 0; i < ConstraintsArray.Length; i++)
                     {
                         Velocity velA = VelocityFromEntity[ConstraintsArray[i].RigidbodyA];
                         Velocity velB = VelocityFromEntity[ConstraintsArray[i].RigidbodyB];
@@ -251,9 +249,14 @@ namespace PhysicsEngine
             }
         }
 
+        protected override void OnCreateManager(int capacity)
+        {
+            ConstraintsQueue = new NativeQueue<Constraint>(Allocator.Persistent);
+        }
+
         protected override void OnDestroyManager()
         {
-            PhysicsSystem.ConstraintsCounter.Dispose();
+            ConstraintsQueue.Dispose();
             PhysicsSystem.ConstraintsArray.Dispose();
         }
 
@@ -264,29 +267,32 @@ namespace PhysicsEngine
                 return inputDeps;
             }
 
-            if (!PhysicsSystem.ConstraintsArray.IsCreated)
-            {
-                PhysicsSystem.ConstraintsArray = new NativeArray<Constraint>(1000000, Allocator.Persistent);
-            }
-
-            if (!PhysicsSystem.ConstraintsCounter.IsCreated)
-            {
-                PhysicsSystem.ConstraintsCounter = new NativeCounter(Allocator.Persistent);
-            }
-
-            PhysicsSystem.ConstraintsCounter.Count = 0;
-
             inputDeps.Complete();
+
 
             var buildConstraints = new BuildSystemConstraints
             {
-                ConstraintsCounter = PhysicsSystem.ConstraintsCounter,
-                ConstraintsArray = PhysicsSystem.ConstraintsArray,
+                ConstraintsQueue = ConstraintsQueue,
                 CollisionManifoldsArray = PhysicsSystem.CollisionManifoldsArray,
                 RigidBodyFromEntity = RigidBodyFromEntity,
             }.Schedule(inputDeps);
 
             buildConstraints.Complete();
+
+            if (PhysicsSystem.ConstraintsArray.IsCreated)
+            {
+                PhysicsSystem.ConstraintsArray.Dispose();
+            }
+            PhysicsSystem.ConstraintsArray = new NativeArray<Constraint>(ConstraintsQueue.Count, Allocator.TempJob);
+            DequeueIntoArray<Constraint> dequeueManifoldsJob = new DequeueIntoArray<Constraint>()
+            {
+                InputQueue = ConstraintsQueue,
+                OutputArray = PhysicsSystem.ConstraintsArray,
+            };
+            JobHandle dequeueCollisionManifolds = dequeueManifoldsJob.Schedule(buildConstraints);
+
+            // Need to complete jobs here because counter will be read in the next system
+            dequeueCollisionManifolds.Complete();
 
             var solveConstraints = new SolveConstraintsSequentialImpulses
             {
@@ -296,7 +302,6 @@ namespace PhysicsEngine
                 RigidBodyFromEntity = RigidBodyFromEntity,
                 VelocityFromEntity = VelocityFromEntity,
                 AngularVelocityFromEntity = AngularVelocityFromEntity,
-                ConstraintsCounter = PhysicsSystem.ConstraintsCounter,
                 ConstraintsArray = PhysicsSystem.ConstraintsArray,
             }.Schedule(buildConstraints);
 

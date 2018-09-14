@@ -20,7 +20,7 @@ namespace PhysicsEngine
         {
             public readonly int Length;
             public ComponentDataArray<RigidBody> RigidBody;
-            public ComponentDataArray<GlobalGravity> GlobalGravity;
+            public ComponentDataArray<UniformGravity> GlobalGravity;
             public ComponentDataArray<Velocity> Velocity;
         }
         [Inject] RigidBodyGroup _rigidbodies;

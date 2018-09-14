@@ -19,16 +19,11 @@ namespace PhysicsEngine
         public float DeltaTime;
 
         public PhysicsSettings Settings;
-
-        //public NativeArray<BVHNode> ColliderBVHArray;
-        public NativeQueue<CollisionManifold> CollisionManifoldsQueue;
-        public NativeArray<CollisionManifold> CollisionManifoldsArray;
-
+        
         public NativeArray<CollisionPair> SphereSphereCollisionPairsArray;
         public NativeArray<CollisionPair> SphereBoxCollisionPairsArray;
         public NativeArray<CollisionPair> BoxBoxCollisionPairsArray;
-
-        public NativeCounter ConstraintsCounter;
+        public NativeArray<CollisionManifold> CollisionManifoldsArray;
         public NativeArray<Constraint> ConstraintsArray;
 
         private List<ComponentSystemBase> _physicsSystems;
@@ -43,7 +38,6 @@ namespace PhysicsEngine
             _physicsSystems.Add(World.GetOrCreateManager<UpdateColliderPoseSystem>());
             _physicsSystems.Add(World.GetOrCreateManager<ComputeColliderAABBSystem>());
             _physicsSystems.Add(World.GetOrCreateManager<BroadphaseSystem>());
-            _physicsSystems.Add(World.GetOrCreateManager<ContactsPhaseInitializationSystem>());
             _physicsSystems.Add(World.GetOrCreateManager<ContactsGenerationSystem>());
             _physicsSystems.Add(World.GetOrCreateManager<ConstraintSolverSystem>());
 

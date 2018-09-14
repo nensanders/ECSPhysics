@@ -5,15 +5,21 @@ using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Jobs;
 using Unity.Collections;
-using Unity.Transforms;
 using Unity.Burst;
 using UnityEngine.Experimental.LowLevel;
 using System;
 using System.Runtime.CompilerServices;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Jobs.LowLevel.Unsafe;
 
 namespace PhysicsEngine
 {
+    public struct NodePair
+    {
+        public int A;
+        public int B;
+    }
+
     [DisableAutoCreation]
     public class BroadphaseSystem : JobComponentSystem
     {
@@ -44,12 +50,7 @@ namespace PhysicsEngine
         public NativeQueue<CollisionPair> SphereBoxCollisionPairsQueue;
         public NativeQueue<CollisionPair> BoxBoxCollisionPairsQueue;
 
-        public NativeArray<AABB> BVHAABB;
-        public NativeArray<Entity> BVHAssociatedEntity;
-        public NativeArray<int> BVHRightmostLeafIndex;
-        public NativeArray<int> BVHFirstChildIndex;
-        public NativeArray<byte> BVHIsValid;
-        public NativeArray<byte> BVHColliderType;
+        public NativeArray<BVHNode> BVHArray;
 
         [BurstCompile]
         struct ComputeAndSortMortonCodes : IJob
@@ -169,16 +170,12 @@ namespace PhysicsEngine
             [ReadOnly]
             public NativeArray<int> sortResultsArrayIsA;
 
-            public NativeArray<AABB> BVHAABB;
-            public NativeArray<Entity> BVHAssociatedEntity;
-            public NativeArray<int> BVHRightmostLeafIndex;
-            public NativeArray<int> BVHFirstChildIndex;
-            public NativeArray<byte> BVHIsValid;
-            public NativeArray<byte> BVHColliderType;
+            public NativeArray<BVHNode> BVHArray;
 
             public void Execute()
             {
-                int halfBVHArrayLength = BVHAABB.Length / 2;
+                int bvhLength = BVHArray.Length;
+                int halfBVHArrayLength = bvhLength / 2;
 
                 // Populate leaf nodes
                 for (int i = 0; i < AABB.Length; i++)
@@ -186,12 +183,14 @@ namespace PhysicsEngine
                     int colliderIndex = sortResultsArrayIsA[0] == 1 ? indexConverterA[i] : indexConverterB[i];
                     int bvhIndex = halfBVHArrayLength + i;
 
-                    BVHAABB[bvhIndex] = AABB[colliderIndex];
-                    BVHAssociatedEntity[bvhIndex] = Entity[sortResultsArrayIsA[0] == 1 ? indexConverterA[i] : indexConverterB[i]];
-                    BVHRightmostLeafIndex[bvhIndex] = bvhIndex;
-                    BVHFirstChildIndex[bvhIndex] = -1;
-                    BVHIsValid[bvhIndex] = 1;
-                    BVHColliderType[bvhIndex] = ColliderType[colliderIndex].Value;
+                    BVHNode bvhNode = BVHArray[bvhIndex];
+                    bvhNode.aabb = AABB[colliderIndex];
+                    bvhNode.AssociatedEntity = Entity[sortResultsArrayIsA[0] == 1 ? indexConverterA[i] : indexConverterB[i]];
+                    bvhNode.RightmostLeafIndex = bvhIndex;
+                    bvhNode.FirstChildIndex = -1;
+                    bvhNode.IsValid = 1;
+                    bvhNode .ColliderType = ColliderType[colliderIndex].Value;
+                    BVHArray[bvhIndex] = bvhNode;
                 }
 
                 // Set all parent nodes to valid
@@ -201,14 +200,18 @@ namespace PhysicsEngine
                     indexOfLastValidLeafOnLevel = PhysicsMath.GetParentBVHNodeIndex(indexOfLastValidLeafOnLevel);
 
                     if (indexOfLastValidLeafOnLevel == 0)
-                    { 
-                        BVHIsValid[0] = 1;
+                    {
+                        BVHNode bvhNode = BVHArray[0];
+                        bvhNode.IsValid = 1;
+                        BVHArray[0] = bvhNode;
                     }
                     else
                     {
                         for (int i = PhysicsMath.GetNextLowestPowerOf2(indexOfLastValidLeafOnLevel) - 1; i <= indexOfLastValidLeafOnLevel; i++)
                         {
-                            BVHIsValid[i] = 1;
+                            BVHNode bvhNode = BVHArray[i];
+                            bvhNode.IsValid = 1;
+                            BVHArray[i] = bvhNode;
                         }
                     }
                 }
@@ -221,11 +224,13 @@ namespace PhysicsEngine
 
                     int nbNodesOnLevel = PhysicsMath.GetNextLowestPowerOf2(i + 1);
                     int nodeOrderOnLevel = i - nbNodesOnLevel + 2;
-                    int leafNodesCount = (BVHAABB.Length + 1) / 2;
+                    int leafNodesCount = (bvhLength + 1) / 2;
 
-                    BVHFirstChildIndex[i] = PhysicsMath.GetFirstChildBVHNodeIndex(i);
-                    BVHRightmostLeafIndex[i] = (BVHAABB.Length - 1) - ((leafNodesCount / nbNodesOnLevel) * (nbNodesOnLevel - nodeOrderOnLevel));
-                    BVHAABB[i] = PhysicsMath.GetEncompassingAABB(BVHAABB[childNode1], BVHAABB[childNode2]);
+                    BVHNode bvhNode = BVHArray[i];
+                    bvhNode.FirstChildIndex = PhysicsMath.GetFirstChildBVHNodeIndex(i);
+                    bvhNode.RightmostLeafIndex = (bvhLength - 1) - ((leafNodesCount / nbNodesOnLevel) * (nbNodesOnLevel - nodeOrderOnLevel));
+                    bvhNode.aabb = PhysicsMath.GetEncompassingAABB(BVHArray[childNode1].aabb, BVHArray[childNode2].aabb);
+                    BVHArray[i] = bvhNode;
                 }
             }
         }
@@ -237,22 +242,7 @@ namespace PhysicsEngine
 
             [ReadOnly]
             [NativeDisableParallelForRestriction]
-            public NativeArray<AABB> BVHAABB;
-            [ReadOnly]
-            [NativeDisableParallelForRestriction]
-            public NativeArray<Entity> BVHAssociatedEntity;
-            [ReadOnly]
-            [NativeDisableParallelForRestriction]
-            public NativeArray<int> BVHRightmostLeafIndex;
-            [ReadOnly]
-            [NativeDisableParallelForRestriction]
-            public NativeArray<int> BVHFirstChildIndex;
-            [ReadOnly]
-            [NativeDisableParallelForRestriction]
-            public NativeArray<byte> BVHIsValid;
-            [ReadOnly]
-            [NativeDisableParallelForRestriction]
-            public NativeArray<byte> BVHColliderType;
+            public NativeArray<BVHNode> BVHArray;
 
             [WriteOnly] 
             [NativeDisableParallelForRestriction]
@@ -260,23 +250,23 @@ namespace PhysicsEngine
 
             void QueryBVHNode(int comparedToNode, int leafNodeIndex)
             {
-                if (BVHRightmostLeafIndex[comparedToNode] > leafNodeIndex &&
-                    BVHIsValid[comparedToNode] > 0 &&
-                    PhysicsMath.AABBToAABBOverlap(BVHAABB[leafNodeIndex], BVHAABB[comparedToNode]))
+                if (BVHArray[comparedToNode].RightmostLeafIndex > leafNodeIndex &&
+                    BVHArray[comparedToNode].IsValid > 0 &&
+                    PhysicsMath.AABBToAABBOverlap(BVHArray[leafNodeIndex].aabb, BVHArray[comparedToNode].aabb))
                 {
                     // leaf node
-                    if (BVHFirstChildIndex[comparedToNode] < 0)
+                    if (BVHArray[comparedToNode].FirstChildIndex < 0)
                     {
                         CollisionPair newPair = new CollisionPair
                         {
-                            ColliderEntityA = BVHAssociatedEntity[leafNodeIndex],
-                            ColliderEntityB = BVHAssociatedEntity[comparedToNode],
+                            ColliderEntityA = BVHArray[leafNodeIndex].AssociatedEntity,
+                            ColliderEntityB = BVHArray[comparedToNode].AssociatedEntity,
                         };
                         CollisionPairsQueue.Enqueue(newPair);
                     }
                     else
                     {
-                        int firstChildIndex = BVHFirstChildIndex[comparedToNode];
+                        int firstChildIndex = BVHArray[comparedToNode].FirstChildIndex;
                         QueryBVHNode(firstChildIndex, leafNodeIndex);
                         QueryBVHNode(firstChildIndex + 1, leafNodeIndex);
                     }
@@ -297,39 +287,30 @@ namespace PhysicsEngine
             public int IndexCount;
 
             [ReadOnly]
-            public NativeArray<AABB> BVHAABB;
-            [ReadOnly]
-            public NativeArray<Entity> BVHAssociatedEntity;
-            [ReadOnly]
-            public NativeArray<int> BVHRightmostLeafIndex;
-            [ReadOnly]
-            public NativeArray<int> BVHFirstChildIndex;
-            [ReadOnly]
-            public NativeArray<byte> BVHIsValid;
-            [ReadOnly]
-            public NativeArray<byte> BVHColliderType;
+            public NativeArray<BVHNode> BVHArray;
 
             [WriteOnly]
             public NativeQueue<CollisionPair> CollisionPairsQueue;
 
             void QueryBVHNode(int comparedToNode, int leafNodeIndex)
             {
-                if (BVHRightmostLeafIndex[comparedToNode] > leafNodeIndex &&
-                    BVHIsValid[comparedToNode] > 0 &&
-                    PhysicsMath.AABBToAABBOverlap(BVHAABB[leafNodeIndex], BVHAABB[comparedToNode]))
+                if (BVHArray[comparedToNode].RightmostLeafIndex > leafNodeIndex &&
+                    BVHArray[comparedToNode].IsValid > 0 &&
+                    PhysicsMath.AABBToAABBOverlap(BVHArray[leafNodeIndex].aabb, BVHArray[comparedToNode].aabb))
                 {
                     // leaf node
-                    if (BVHFirstChildIndex[comparedToNode] < 0)
+                    if (BVHArray[comparedToNode].FirstChildIndex < 0)
                     {
-                        CollisionPairsQueue.Enqueue(new CollisionPair
+                        CollisionPair newPair = new CollisionPair
                         {
-                            ColliderEntityA = BVHAssociatedEntity[leafNodeIndex],
-                            ColliderEntityB = BVHAssociatedEntity[comparedToNode],
-                        });
+                            ColliderEntityA = BVHArray[leafNodeIndex].AssociatedEntity,
+                            ColliderEntityB = BVHArray[comparedToNode].AssociatedEntity,
+                        };
+                        CollisionPairsQueue.Enqueue(newPair);
                     }
                     else
                     {
-                        int firstChildIndex = BVHFirstChildIndex[comparedToNode];
+                        int firstChildIndex = BVHArray[comparedToNode].FirstChildIndex;
                         QueryBVHNode(firstChildIndex, leafNodeIndex);
                         QueryBVHNode(firstChildIndex + 1, leafNodeIndex);
                     }
@@ -346,14 +327,137 @@ namespace PhysicsEngine
             }
         }
 
+        [BurstCompile]
+        struct BuildCollisionPairsGroupStack : IJob
+        {
+            [ReadOnly]
+            public NativeArray<BVHNode> BVHArray;
+
+            public NativeQueue<NodePair> NodePairsStack;
+
+            [WriteOnly]
+            public NativeQueue<CollisionPair> CollisionPairsQueue;
+
+            public void CompareNodes(int A, int B)
+            {
+                if (A >= 0 &&
+                    B >= 0 &&
+                    BVHArray[A].IsValid > 0 &&
+                    BVHArray[B].IsValid > 0)
+                {
+                    if (PhysicsMath.AABBToAABBOverlap(BVHArray[A].aabb, BVHArray[B].aabb))
+                    {
+                        // if leaf node
+                        if (BVHArray[A].FirstChildIndex < 0)
+                        {
+                            CollisionPair newPair = new CollisionPair
+                            {
+                                ColliderEntityA = BVHArray[A].AssociatedEntity,
+                                ColliderEntityB = BVHArray[B].AssociatedEntity,
+                            };
+                            CollisionPairsQueue.Enqueue(newPair);
+                        }
+                        else
+                        {
+                            NodePairsStack.Enqueue(new NodePair() { A = A, B = B });
+                        }
+                    }
+                }
+            }
+
+            public void Execute()
+            {
+                // Add first node pair
+                NodePairsStack.Enqueue(new NodePair() { A = 1, B = 2 });
+
+                // Dequeue stack
+                while (NodePairsStack.Count > 0)
+                {
+                    NodePair pair = NodePairsStack.Dequeue();
+
+                    int childA1Index = BVHArray[pair.A].FirstChildIndex;
+                    int childA2Index = childA1Index + 1;
+                    int childB1Index = BVHArray[pair.B].FirstChildIndex;
+                    int childB2Index = childB1Index + 1;
+
+                    // Compare child nodes
+                    CompareNodes(childA1Index, childA2Index);
+                    CompareNodes(childA1Index, childB1Index);
+                    CompareNodes(childA1Index, childB2Index);
+                    CompareNodes(childA2Index, childB1Index);
+                    CompareNodes(childA2Index, childB2Index);
+                    CompareNodes(childB1Index, childB2Index);
+                }
+            }
+        }
+
+        [BurstCompile]
+        struct BuildCollisionPairsGroupRecursive : IJob
+        {
+            [ReadOnly]
+            public NativeArray<BVHNode> BVHArray;
+
+            [WriteOnly]
+            public NativeQueue<CollisionPair> CollisionPairsQueue;
+
+            public void CompareNodes(int A, int B)
+            {
+                int childA1Index = BVHArray[A].FirstChildIndex;
+                int childA2Index = childA1Index + 1;
+                int childB1Index = BVHArray[B].FirstChildIndex;
+                int childB2Index = childB1Index + 1;
+
+                // always compare own children
+                if (BVHArray[A].IsValid > 0 &&
+                    BVHArray[A].FirstChildIndex >= 0)
+                {
+                    CompareNodes(childA1Index, childA2Index);
+                }
+                if (BVHArray[B].IsValid > 0 &&
+                    BVHArray[B].FirstChildIndex >= 0)
+                {
+                    CompareNodes(childB1Index, childB2Index);
+                }
+
+                if (BVHArray[A].IsValid > 0 &&
+                    BVHArray[B].IsValid > 0)
+                {
+                    if (PhysicsMath.AABBToAABBOverlap(BVHArray[A].aabb, BVHArray[B].aabb))
+                    {
+                        // if leaf node, add as collision pair
+                        if (BVHArray[A].FirstChildIndex < 0)
+                        {
+                            CollisionPair newPair = new CollisionPair
+                            {
+                                ColliderEntityA = BVHArray[A].AssociatedEntity,
+                                ColliderEntityB = BVHArray[B].AssociatedEntity,
+                            };
+                            CollisionPairsQueue.Enqueue(newPair); 
+                        }
+                        // if not, compare their children
+                        else
+                        {
+                            // Compare child nodes
+                            CompareNodes(childA1Index, childB1Index);
+                            CompareNodes(childA1Index, childB2Index);
+                            CompareNodes(childA2Index, childB1Index);
+                            CompareNodes(childA2Index, childB2Index);
+                        }
+                    }
+                }
+            }
+
+            public void Execute()
+            {
+                CompareNodes(1, 2);
+            }
+        }
+
         protected override void OnCreateManager(int capacity)
         {
-            BVHAABB = new NativeArray<AABB>(10, Allocator.Persistent);
-            BVHAssociatedEntity = new NativeArray<Entity>(10, Allocator.Persistent);
-            BVHRightmostLeafIndex = new NativeArray<int>(10, Allocator.Persistent);
-            BVHFirstChildIndex = new NativeArray<int>(10, Allocator.Persistent);
-            BVHIsValid = new NativeArray<byte>(10, Allocator.Persistent);
-            BVHColliderType = new NativeArray<byte>(10, Allocator.Persistent);
+            BVHArray = new NativeArray<BVHNode>(10, Allocator.TempJob);
+
+            SphereSphereCollisionPairsQueue = new NativeQueue<CollisionPair>(Allocator.Persistent);
         }
 
         protected override void OnDestroyManager()
@@ -361,12 +465,7 @@ namespace PhysicsEngine
             SphereSphereCollisionPairsQueue.Dispose();
             PhysicsSystem.SphereSphereCollisionPairsArray.Dispose();
 
-            BVHAABB.Dispose();
-            BVHAssociatedEntity.Dispose();
-            BVHRightmostLeafIndex.Dispose();
-            BVHFirstChildIndex.Dispose();
-            BVHIsValid.Dispose();
-            BVHColliderType.Dispose();
+            BVHArray.Dispose();
 
             mortonCodesA.Dispose();
             mortonCodesB.Dispose();
@@ -446,30 +545,15 @@ namespace PhysicsEngine
             // Build BVH
             int requiredBVHLength = (PhysicsMath.GetNextHighestPowerOf2(math.ceil_pow2(collidersCount) + 1)) - 1;
 
-            BVHAABB.Dispose();
-            BVHAssociatedEntity.Dispose();
-            BVHRightmostLeafIndex.Dispose();
-            BVHFirstChildIndex.Dispose();
-            BVHIsValid.Dispose();
-            BVHColliderType.Dispose();
-            BVHAABB = new NativeArray<AABB>(requiredBVHLength, Allocator.TempJob);
-            BVHAssociatedEntity = new NativeArray<Entity>(requiredBVHLength, Allocator.TempJob);
-            BVHRightmostLeafIndex = new NativeArray<int>(requiredBVHLength, Allocator.TempJob);
-            BVHFirstChildIndex = new NativeArray<int>(requiredBVHLength, Allocator.TempJob);
-            BVHIsValid = new NativeArray<byte>(requiredBVHLength, Allocator.TempJob);
-            BVHColliderType = new NativeArray<byte>(requiredBVHLength, Allocator.TempJob);
+            BVHArray.Dispose();
+            BVHArray = new NativeArray<BVHNode>(requiredBVHLength, Allocator.TempJob);
 
             var constructBVH = new ConstructBVH()
             {
                 Entity = _colliderGroup.Entity,
                 AABB = _colliderGroup.AABB,
                 ColliderType = _colliderGroup.ColliderType,
-                BVHAABB = BVHAABB,
-                BVHAssociatedEntity = BVHAssociatedEntity,
-                BVHRightmostLeafIndex = BVHRightmostLeafIndex,
-                BVHFirstChildIndex = BVHFirstChildIndex,
-                BVHIsValid = BVHIsValid,
-                BVHColliderType = BVHColliderType,
+                BVHArray = BVHArray,
                 indexConverterA = indexConverterA,
                 indexConverterB = indexConverterB,
                 sortResultsArrayIsA = sortResultsArrayIsA,
@@ -479,20 +563,16 @@ namespace PhysicsEngine
             if (PhysicsSystem.Settings.ShowBVHBounds)
             {
                 constructBVH.Complete();
-                for (int i = BVHAABB.Length / 4; i < BVHAABB.Length / 2; i++)
+                for (int i = BVHArray.Length / 4; i < BVHArray.Length / 2; i++)
                 {
-                    if (BVHIsValid[i] > 0)
+                    if (BVHArray[i].IsValid > 0)
                     {
-                        DebugUtils.DrawAABB(BVHAABB[i], UnityEngine.Random.ColorHSV());
+                        DebugUtils.DrawAABB(BVHArray[i].aabb, UnityEngine.Random.ColorHSV());
                     }
                 }
             }
 
             // Init pairs queue
-            if (!SphereSphereCollisionPairsQueue.IsCreated)
-            {
-                SphereSphereCollisionPairsQueue = new NativeQueue<CollisionPair>(Allocator.Persistent);
-            }
             SphereSphereCollisionPairsQueue.Clear();
 
             JobHandle buildCollisionPairs = new JobHandle();
@@ -501,13 +581,8 @@ namespace PhysicsEngine
             {
                 BuildCollisionPairsParallel buildCollisionPairsJob = new BuildCollisionPairsParallel()
                 {
-                    HalfBVHArrayLength = BVHAABB.Length / 2,
-                    BVHAABB = BVHAABB,
-                    BVHAssociatedEntity = BVHAssociatedEntity,
-                    BVHRightmostLeafIndex = BVHRightmostLeafIndex,
-                    BVHFirstChildIndex = BVHFirstChildIndex,
-                    BVHIsValid = BVHIsValid,
-                    BVHColliderType = BVHColliderType,
+                    HalfBVHArrayLength = BVHArray.Length / 2,
+                    BVHArray = BVHArray,
                     CollisionPairsQueue = SphereSphereCollisionPairsQueue,
                 };
                 buildCollisionPairs = buildCollisionPairsJob.Schedule(_colliderGroup.AABB.Length, PhysicsSystem.Settings.BroadphaseSystemBatchCount, constructBVH);
@@ -516,14 +591,32 @@ namespace PhysicsEngine
             //{
             //    BuildCollisionPairsSingle buildCollisionPairsJob = new BuildCollisionPairsSingle()
             //    {
-            //        StartIndex = BVHAABB.Length / 2,
+            //        StartIndex = BVHArray.Length / 2,
             //        IndexCount = _colliderGroup.AABB.Length,
-            //        BVHAABB = BVHAABB,
-            //        BVHAssociatedEntity = BVHAssociatedEntity,
-            //        BVHRightmostLeafIndex = BVHRightmostLeafIndex,
-            //        BVHFirstChildIndex = BVHFirstChildIndex,
-            //        BVHIsValid = BVHIsValid,
-            //        BVHColliderType = BVHColliderType,
+            //        BVHArray = BVHArray,
+            //        CollisionPairsQueue = SphereSphereCollisionPairsQueue,
+            //    };
+            //    buildCollisionPairs = buildCollisionPairsJob.Schedule(constructBVH);
+            //}
+
+            //{
+            //    NativeQueue<NodePair> NodeStack = new NativeQueue<NodePair>(Allocator.TempJob);
+            //    BuildCollisionPairsGroupStack buildCollisionPairsJob = new BuildCollisionPairsGroupStack()
+            //    {
+            //        BVHArray = BVHArray,
+            //        NodePairsStack = NodeStack,
+            //        CollisionPairsQueue = SphereSphereCollisionPairsQueue,
+            //    };
+            //    buildCollisionPairs = buildCollisionPairsJob.Schedule(constructBVH);
+
+            //    buildCollisionPairs.Complete();
+            //    NodeStack.Dispose();
+            //}
+
+            //{
+            //    BuildCollisionPairsGroupRecursive buildCollisionPairsJob = new BuildCollisionPairsGroupRecursive()
+            //    {
+            //        BVHArray = BVHArray,
             //        CollisionPairsQueue = SphereSphereCollisionPairsQueue,
             //    };
             //    buildCollisionPairs = buildCollisionPairsJob.Schedule(constructBVH);
@@ -531,6 +624,7 @@ namespace PhysicsEngine
 
             // Init pairs array
             buildCollisionPairs.Complete();
+
             if (PhysicsSystem.SphereSphereCollisionPairsArray.IsCreated)
             {
                 PhysicsSystem.SphereSphereCollisionPairsArray.Dispose();

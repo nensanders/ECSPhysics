@@ -6,8 +6,7 @@ using Unity.Mathematics;
 
 namespace PhysicsEngine
 {
-    public struct Drag : IComponentData
+    public struct UniformGravity : IComponentData
     {
-        public float Value;
     }
 }

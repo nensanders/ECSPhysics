@@ -15,9 +15,9 @@ public static class PhysicsEntityFactory
             typeof(Unity.Transforms.Rotation),
             typeof(PhysicsEngine.Velocity),
             typeof(PhysicsEngine.AngularVelocity),
-            typeof(PhysicsEngine.Drag),
-            typeof(PhysicsEngine.AngularDrag),
-            typeof(PhysicsEngine.GlobalGravity)
+            typeof(PhysicsEngine.LinearDamping),
+            typeof(PhysicsEngine.AngularDamping),
+            typeof(PhysicsEngine.UniformGravity)
             );
     }
 

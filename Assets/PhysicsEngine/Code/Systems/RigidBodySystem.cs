@@ -19,7 +19,7 @@ namespace PhysicsEngine
             public readonly int Length;
             public ComponentDataArray<RigidBody> RigidBody;
             public ComponentDataArray<Velocity> Velocity;
-            public ComponentDataArray<Drag> Drag;
+            public ComponentDataArray<LinearDamping> Drag;
         }
         [Inject] RigidBodyDragGroup _rigidBodyDragGroup;
 
@@ -30,7 +30,7 @@ namespace PhysicsEngine
             public readonly int Length;
             public ComponentDataArray<RigidBody> RigidBody;
             public ComponentDataArray<AngularVelocity> AngularVelocity;
-            public ComponentDataArray<AngularDrag> AngularDrag;
+            public ComponentDataArray<AngularDamping> AngularDrag;
         }
         [Inject] RigidBodyAngularDragGroup _rigidBodyAngularDragGroup;
         
@@ -59,7 +59,7 @@ namespace PhysicsEngine
         {
             [ReadOnly] public float DeltaTime;
             public ComponentDataArray<Velocity> Velocity;
-            [ReadOnly] public ComponentDataArray<Drag> Drag;
+            [ReadOnly] public ComponentDataArray<LinearDamping> Drag;
 
             public void Execute(int index)
             {
@@ -77,7 +77,7 @@ namespace PhysicsEngine
         {
             [ReadOnly] public float DeltaTime;
             public ComponentDataArray<AngularVelocity> AngularVelocity;
-            [ReadOnly] public ComponentDataArray<AngularDrag> AngularDrag;
+            [ReadOnly] public ComponentDataArray<AngularDamping> AngularDrag;
 
             public void Execute(int index)
             {

@@ -23,6 +23,8 @@ namespace PhysicsEngine
 
         [Inject] PhysicsSystem PhysicsSystem;
 
+        private NativeQueue<CollisionManifold> CollisionManifoldsQueue;
+
         [BurstCompile]
         struct ComputeSphereSphereContacts : IJobParallelFor
         {
@@ -93,24 +95,22 @@ namespace PhysicsEngine
             }
         }
 
+        protected override void OnCreateManager(int capacity)
+        {
+
+            CollisionManifoldsQueue = new NativeQueue<CollisionManifold>(Allocator.Persistent);
+        }
+
         protected override void OnDestroyManager()
         {
-            PhysicsSystem.CollisionManifoldsQueue.Dispose();
+            CollisionManifoldsQueue.Dispose();
             PhysicsSystem.CollisionManifoldsArray.Dispose();
         }
 
         protected override JobHandle OnUpdate(JobHandle inputDeps)
         {
-            if (!PhysicsSystem.CollisionManifoldsQueue.IsCreated)
-            {
-                PhysicsSystem.CollisionManifoldsQueue = new NativeQueue<CollisionManifold>(Allocator.Persistent);
-            }
-            if (!PhysicsSystem.CollisionManifoldsArray.IsCreated)
-            {
-                PhysicsSystem.CollisionManifoldsArray = new NativeArray<CollisionManifold>(1000000, Allocator.Persistent);
-            }
+            CollisionManifoldsQueue.Clear();
 
-            PhysicsSystem.CollisionManifoldsQueue.Clear();
             var computeSphereSphereContactsJob = new ComputeSphereSphereContacts
             {
                 CollisionPairsArray = PhysicsSystem.SphereSphereCollisionPairsArray,
@@ -120,7 +120,7 @@ namespace PhysicsEngine
                 ColliderPhysicsPropertiesFromEntity = ColliderPhysicsPropertiesFromEntity,
                 SphereColliderFromEntity = SphereColliderFromEntity,
                 VelocityFromEntity = VelocityFromEntity,
-                CollisionManifoldsQueue = PhysicsSystem.CollisionManifoldsQueue,
+                CollisionManifoldsQueue = CollisionManifoldsQueue,
             };
             var computeSphereSphereContacts = computeSphereSphereContactsJob.Schedule(PhysicsSystem.SphereSphereCollisionPairsArray.Length, PhysicsSystem.Settings.ContactsGenerationSystemBatchCount, inputDeps);
             
@@ -129,10 +129,10 @@ namespace PhysicsEngine
             {
                 PhysicsSystem.CollisionManifoldsArray.Dispose();
             }
-            PhysicsSystem.CollisionManifoldsArray = new NativeArray<CollisionManifold>(PhysicsSystem.CollisionManifoldsQueue.Count, Allocator.TempJob);
+            PhysicsSystem.CollisionManifoldsArray = new NativeArray<CollisionManifold>(CollisionManifoldsQueue.Count, Allocator.TempJob);
             DequeueIntoArray<CollisionManifold> dequeueManifoldsJob = new DequeueIntoArray<CollisionManifold>()
             {
-                InputQueue = PhysicsSystem.CollisionManifoldsQueue,
+                InputQueue = CollisionManifoldsQueue,
                 OutputArray = PhysicsSystem.CollisionManifoldsArray,
             };
             JobHandle dequeueCollisionManifolds = dequeueManifoldsJob.Schedule(computeSphereSphereContacts);
