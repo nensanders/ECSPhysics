@@ -1,0 +1,14 @@
+{
+	"name" : "com.philsa.ecs-physics",
+	"displayName" : "ECS Physics",
+	"author" : "Philippe St-Amand",
+	"version" : "0.0.1-preview",
+	"unity" : "2018.3",
+	"description" : "3D physics engine made specifically for Pure ECS.",
+	"dependencies" : {
+		"com.unity.burst": "0.2.4-preview.34",
+		"com.unity.collections": "0.0.9-preview.9",
+		"com.unity.entities": "0.0.12-preview.19",
+		"com.unity.mathematics": "0.0.12-preview.19"
+	}
+}
