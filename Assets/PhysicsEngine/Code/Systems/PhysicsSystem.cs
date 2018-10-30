@@ -28,7 +28,7 @@ namespace PhysicsEngine
 
         private List<ComponentSystemBase> _physicsSystems;
 
-        protected override void OnCreateManager(int capacity)
+        protected override void OnCreateManager()
         {
             Settings = PhysicsSettings.LoadFromResources();
 

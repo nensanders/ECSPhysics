@@ -57,7 +57,7 @@ namespace PhysicsEngine
                 float3 aPos = ColliderPositionFromEntity[collAEntity].Value;
                 float3 bPos = ColliderPositionFromEntity[collBEntity].Value;
                 float3 fromAToBVector = bPos - aPos;
-                if(math.lengthSquared(fromAToBVector) == 0f)
+                if(math.lengthsq(fromAToBVector) == 0f)
                 {
                     fromAToBVector = new float3(0f, 1f, 0f);
                 }
@@ -95,7 +95,7 @@ namespace PhysicsEngine
             }
         }
 
-        protected override void OnCreateManager(int capacity)
+        protected override void OnCreateManager()
         {
 
             CollisionManifoldsQueue = new NativeQueue<CollisionManifold>(Allocator.Persistent);
@@ -120,7 +120,7 @@ namespace PhysicsEngine
                 ColliderPhysicsPropertiesFromEntity = ColliderPhysicsPropertiesFromEntity,
                 SphereColliderFromEntity = SphereColliderFromEntity,
                 VelocityFromEntity = VelocityFromEntity,
-                CollisionManifoldsQueue = CollisionManifoldsQueue,
+                CollisionManifoldsQueue = CollisionManifoldsQueue.ToConcurrent(),
             };
             var computeSphereSphereContacts = computeSphereSphereContactsJob.Schedule(PhysicsSystem.SphereSphereCollisionPairsArray.Length, PhysicsSystem.Settings.ContactsGenerationSystemBatchCount, inputDeps);
             

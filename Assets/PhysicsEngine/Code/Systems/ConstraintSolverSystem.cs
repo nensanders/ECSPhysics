@@ -249,7 +249,7 @@ namespace PhysicsEngine
             }
         }
 
-        protected override void OnCreateManager(int capacity)
+        protected override void OnCreateManager()
         {
             ConstraintsQueue = new NativeQueue<Constraint>(Allocator.Persistent);
         }

@@ -123,7 +123,7 @@ namespace PhysicsEngine
 
         public static int GetParentBVHNodeIndex(int index)
         {
-            if (math.mod(index, 2) == 0)
+            if (math.fmod(index, 2) == 0)
             {
                 return (index / 2) - 1;
             }

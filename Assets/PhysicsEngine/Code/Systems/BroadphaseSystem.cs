@@ -85,7 +85,7 @@ namespace PhysicsEngine
                 // Radix sort ascending
                 for (int bitPosition = 0; bitPosition < 31; bitPosition++)
                 {
-                    bool isEvenIteration = math.mod(bitPosition, 2) == 0;
+                    bool isEvenIteration = math.fmod(bitPosition, 2) == 0;
 
                     // init histogram counts
                     zeroesHistogramCounter = 0;
@@ -453,7 +453,7 @@ namespace PhysicsEngine
             }
         }
 
-        protected override void OnCreateManager(int capacity)
+        protected override void OnCreateManager()
         {
             BVHArray = new NativeArray<BVHNode>(10, Allocator.TempJob);
 
@@ -543,7 +543,7 @@ namespace PhysicsEngine
             }
 
             // Build BVH
-            int requiredBVHLength = (PhysicsMath.GetNextHighestPowerOf2(math.ceil_pow2(collidersCount) + 1)) - 1;
+            int requiredBVHLength = (PhysicsMath.GetNextHighestPowerOf2(math.ceilpow2(collidersCount) + 1)) - 1;
 
             BVHArray.Dispose();
             BVHArray = new NativeArray<BVHNode>(requiredBVHLength, Allocator.TempJob);
@@ -583,7 +583,7 @@ namespace PhysicsEngine
                 {
                     HalfBVHArrayLength = BVHArray.Length / 2,
                     BVHArray = BVHArray,
-                    CollisionPairsQueue = SphereSphereCollisionPairsQueue,
+                    CollisionPairsQueue = SphereSphereCollisionPairsQueue.ToConcurrent(),
                 };
                 buildCollisionPairs = buildCollisionPairsJob.Schedule(_colliderGroup.AABB.Length, PhysicsSystem.Settings.BroadphaseSystemBatchCount, constructBVH);
             }
