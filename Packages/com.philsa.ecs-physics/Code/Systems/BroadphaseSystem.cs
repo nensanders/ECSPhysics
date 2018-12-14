@@ -1,16 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Jobs;
 using Unity.Collections;
 using Unity.Burst;
-using UnityEngine.Experimental.LowLevel;
-using System;
-using System.Runtime.CompilerServices;
-using Unity.Collections.LowLevel.Unsafe;
-using Unity.Jobs.LowLevel.Unsafe;
 
 namespace PhysicsEngine
 {
@@ -76,7 +69,7 @@ namespace PhysicsEngine
                 // Calculate all morton codes and init sorted index map
                 for (int i = 0; i < aabbs.Length; i++)
                 {
-                    mortonCodesA[i] = PhysicsMath.CalculateMortonCode(PhysicsMath.GetAABBCenter(aabbs[i]));
+                    mortonCodesA[i] = PhysicsMath.CalculateMortonCode(PhysicsMath.GetAABBCenterFloat(aabbs[i]));
 
                     indexConverterA[i] = i;
                     indexConverterB[i] = i;
@@ -105,7 +98,7 @@ namespace PhysicsEngine
                         {
                             bitVal = (mortonCodesB[i] & (1 << bitPosition)) >> bitPosition;
                         }
-                        
+
                         radixSortBitValues[i] = bitVal;
 
                         if (bitVal == 0)
@@ -153,7 +146,7 @@ namespace PhysicsEngine
                 }
             }
         }
-        
+
         [BurstCompile]
         struct ConstructBVH : IJob
         {
@@ -244,7 +237,7 @@ namespace PhysicsEngine
             [NativeDisableParallelForRestriction]
             public NativeArray<BVHNode> BVHArray;
 
-            [WriteOnly] 
+            [WriteOnly]
             [NativeDisableParallelForRestriction]
             public NativeQueue<CollisionPair>.Concurrent CollisionPairsQueue;
 
@@ -432,7 +425,7 @@ namespace PhysicsEngine
                                 ColliderEntityA = BVHArray[A].AssociatedEntity,
                                 ColliderEntityB = BVHArray[B].AssociatedEntity,
                             };
-                            CollisionPairsQueue.Enqueue(newPair); 
+                            CollisionPairsQueue.Enqueue(newPair);
                         }
                         // if not, compare their children
                         else
@@ -461,7 +454,7 @@ namespace PhysicsEngine
         }
 
         protected override void OnDestroyManager()
-        {   
+        {
             SphereSphereCollisionPairsQueue.Dispose();
             PhysicsSystem.SphereSphereCollisionPairsArray.Dispose();
 
@@ -524,8 +517,8 @@ namespace PhysicsEngine
 
                 for (int i = 0; i < _colliderGroup.AABB.Length - 1; i++)
                 {
-                    float3 fromPoint;
-                    float3 toPoint;
+                    double3 fromPoint;
+                    double3 toPoint;
 
                     if (indexConverterIsA)
                     {
@@ -538,7 +531,7 @@ namespace PhysicsEngine
                         toPoint = PhysicsMath.GetAABBCenter(_colliderGroup.AABB[indexConverterB[i + 1]]);
                     }
 
-                    Debug.DrawLine(fromPoint, toPoint, Color.red);
+                    Debug.DrawLine((float3)fromPoint, (float3)toPoint, Color.red);
                 }
             }
 
@@ -648,7 +641,7 @@ namespace PhysicsEngine
                 {
                     Color randomCol = new Color(UnityEngine.Random.Range(0f, 1f), UnityEngine.Random.Range(0f, 1f), UnityEngine.Random.Range(0f, 1f));
                     CollisionPair pair = PhysicsSystem.SphereSphereCollisionPairsArray[i];
-                    Debug.DrawLine(PhysicsMath.GetAABBCenter(AABBFromEntity[pair.ColliderEntityA]), PhysicsMath.GetAABBCenter(AABBFromEntity[pair.ColliderEntityB]), randomCol);
+                    Debug.DrawLine((float3)PhysicsMath.GetAABBCenter(AABBFromEntity[pair.ColliderEntityA]), (float3)PhysicsMath.GetAABBCenter(AABBFromEntity[pair.ColliderEntityB]), randomCol);
                 }
             }
 

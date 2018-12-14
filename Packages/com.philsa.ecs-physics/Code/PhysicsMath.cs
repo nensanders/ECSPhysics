@@ -29,13 +29,13 @@ namespace PhysicsEngine
 
     public static class PhysicsMath
     {
-        public static float3 ProjectOnPlane(float3 vector, float3 onPlane)
+        public static double3 ProjectOnPlane(double3 vector, double3 onPlane)
         {
-            float3 orthogonalComponent = onPlane * math.dot(vector, onPlane);
+            double3 orthogonalComponent = onPlane * math.dot(vector, onPlane);
             return vector - orthogonalComponent;
         }
 
-        public static float3 ProjectOnNormal(float3 vector, float3 onNormal)
+        public static double3 ProjectOnNormal(double3 vector, double3 onNormal)
         {
             return onNormal * math.dot(vector, onNormal);
         }
@@ -78,7 +78,7 @@ namespace PhysicsEngine
             return returnAABB;
         }
 
-        public static void GrowAABB(ref AABB sourceAABB, float3 includePoint)
+        public static void GrowAABB(ref AABB sourceAABB, double3 includePoint)
         {
             sourceAABB.Min.x = math.min(sourceAABB.Min.x, includePoint.x);
             sourceAABB.Min.y = math.min(sourceAABB.Min.y, includePoint.y);
@@ -88,9 +88,16 @@ namespace PhysicsEngine
             sourceAABB.Max.z = math.max(sourceAABB.Max.z, includePoint.z);
         }
 
-        public static float3 GetAABBCenter(AABB aabb)
+        public static double3 GetAABBCenter(AABB aabb)
         {
-            return (aabb.Min + aabb.Max) * 0.5f;
+            return (aabb.Min + aabb.Max) * 0.5;
+        }
+
+        public static float3 GetAABBCenterFloat(AABB aabb)
+        {
+            double3 high = (aabb.Min + aabb.Max) * 0.5;
+
+            return new float3((float)high.x, (float)high.y, (float)high.z);
         }
 
         public static int GetNextHighestPowerOf2(int v)

@@ -22,8 +22,8 @@ namespace PhysicsEngine
         }
         [Inject] ColliderGroup _colliders;
 
-        [Inject] ComponentDataFromEntity<Unity.Transforms.Position> PositionFromEntity;
-        [Inject] ComponentDataFromEntity<Unity.Transforms.Rotation> RotationFromEntity;
+        [Inject] ComponentDataFromEntity<PositionD> PositionFromEntity;
+        [Inject] ComponentDataFromEntity<RotationD> RotationFromEntity;
 
         [Inject] PhysicsSystem PhysicsSystem;
 
@@ -34,19 +34,19 @@ namespace PhysicsEngine
             [ReadOnly] public ComponentDataArray<Collider> Collider;
 
             [NativeDisableParallelForRestriction]
-            public ComponentDataFromEntity<Unity.Transforms.Position> PositionFromEntity;
+            public ComponentDataFromEntity<PositionD> PositionFromEntity;
             [NativeDisableParallelForRestriction]
-            public ComponentDataFromEntity<Unity.Transforms.Rotation> RotationFromEntity;
+            public ComponentDataFromEntity<RotationD> RotationFromEntity;
 
             public void Execute(int index)
             {
                 Entity colliderEntity = ColliderEntity[index];
 
-                Unity.Transforms.Position cp = PositionFromEntity[colliderEntity];
+                PositionD cp = PositionFromEntity[colliderEntity];
                 cp.Value = PositionFromEntity[Collider[index].RigidBodyEntity].Value;
                 PositionFromEntity[colliderEntity] = cp;
 
-                Unity.Transforms.Rotation cr = RotationFromEntity[colliderEntity];
+                RotationD cr = RotationFromEntity[colliderEntity];
                 cr.Value = RotationFromEntity[Collider[index].RigidBodyEntity].Value;
                 RotationFromEntity[colliderEntity] = cr;
             }

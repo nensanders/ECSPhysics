@@ -1,7 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Mathematics;
 
 namespace PhysicsEngine
@@ -9,8 +6,8 @@ namespace PhysicsEngine
     public struct RigidBody : IComponentData
     {
         public byte IsKinematic;
-        public float InverseMass;
-        public float3 CenterOfMass;
-        public float3x3 MomentOfInertia;
+        public double InverseMass;
+        public double3 CenterOfMass;
+        public double3x3 MomentOfInertia;
     }
 }

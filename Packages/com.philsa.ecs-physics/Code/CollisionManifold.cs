@@ -1,9 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Mathematics;
-using Unity.Collections;
 
 public struct CollisionManifold
 {
@@ -13,9 +9,9 @@ public struct CollisionManifold
     public Entity RigidBodyEntityA;
     public Entity RigidBodyEntityB;
 
-    public float3 ContactPointA;
-    public float3 ContactPointB;
+    public double3 ContactPointA;
+    public double3 ContactPointB;
 
-    public float3 CollisionNormalAToB;
-    public float OverlapDistance;
+    public double3 CollisionNormalAToB;
+    public double OverlapDistance;
 }

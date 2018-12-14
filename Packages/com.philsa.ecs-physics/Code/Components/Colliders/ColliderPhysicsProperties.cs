@@ -1,14 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Unity.Entities;
-using Unity.Mathematics;
+﻿using Unity.Entities;
 
 namespace PhysicsEngine
 {
     public struct ColliderPhysicsProperties : IComponentData
     {
-        public float Friction;
-        public float CoefficientOfRestitution;
+        public double Friction;
+        public double CoefficientOfRestitution;
     }
 }

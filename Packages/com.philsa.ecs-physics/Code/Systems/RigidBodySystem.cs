@@ -1,12 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Jobs;
 using Unity.Collections;
 using Unity.Transforms;
-using UnityEngine.Experimental.LowLevel;
 using Unity.Burst;
 
 namespace PhysicsEngine
@@ -33,21 +29,21 @@ namespace PhysicsEngine
             public ComponentDataArray<AngularDamping> AngularDrag;
         }
         [Inject] RigidBodyAngularDragGroup _rigidBodyAngularDragGroup;
-        
+
         struct RigidBodyVelocityGroup
         {
             public readonly int Length;
             public ComponentDataArray<RigidBody> RigidBody;
-            public ComponentDataArray<Position> RigidBodyPosition;
+            public ComponentDataArray<PositionD> RigidBodyPosition;
             public ComponentDataArray<Velocity> Velocity;
         }
         [Inject] RigidBodyVelocityGroup _rigidBodyVelocityGroup;
-        
+
         struct RigidBodyAngularVelocityGroup
         {
             public readonly int Length;
             public ComponentDataArray<RigidBody> RigidBody;
-            public ComponentDataArray<Rotation> RigidBodyRotation;
+            public ComponentDataArray<RotationD> RigidBodyRotation;
             public ComponentDataArray<AngularVelocity> AngularVelocity;
         }
         [Inject] RigidBodyAngularVelocityGroup _rigidBodyAngularVelocityGroup;
@@ -57,16 +53,16 @@ namespace PhysicsEngine
         [BurstCompile]
         struct ProcessDrag : IJobParallelFor
         {
-            [ReadOnly] public float DeltaTime;
+            [ReadOnly] public double DeltaTime;
             public ComponentDataArray<Velocity> Velocity;
             [ReadOnly] public ComponentDataArray<LinearDamping> Drag;
 
             public void Execute(int index)
             {
-                if (Drag[index].Value > 0f)
+                if (Drag[index].Value > double.Epsilon)
                 {
                     Velocity v = Velocity[index];
-                    v.Value = v.Value * math.clamp(1f - Drag[index].Value, 0f, 1f);
+                    v.Value = v.Value * math.clamp(1.0 - Drag[index].Value, 0.0, 1.0);
                     Velocity[index] = v;
                 }
             }
@@ -75,16 +71,16 @@ namespace PhysicsEngine
         [BurstCompile]
         struct ProcessAngularDrag : IJobParallelFor
         {
-            [ReadOnly] public float DeltaTime;
+            [ReadOnly] public double DeltaTime;
             public ComponentDataArray<AngularVelocity> AngularVelocity;
             [ReadOnly] public ComponentDataArray<AngularDamping> AngularDrag;
 
             public void Execute(int index)
             {
-                if (AngularDrag[index].Value > 0f)
+                if (AngularDrag[index].Value > double.Epsilon)
                 {
                     AngularVelocity a = AngularVelocity[index];
-                    a.Value = a.Value * math.clamp(1f - AngularDrag[index].Value, 0f, 1f);
+                    a.Value = a.Value * math.clamp(1.0 - AngularDrag[index].Value, 0.0, 1.0);
                     AngularVelocity[index] = a;
                 }
             }
@@ -93,13 +89,13 @@ namespace PhysicsEngine
         [BurstCompile]
         struct ProcessVelocity : IJobParallelFor
         {
-            [ReadOnly] public float DeltaTime;
+            [ReadOnly] public double DeltaTime;
             [ReadOnly] public ComponentDataArray<Velocity> Velocity;
-            public ComponentDataArray<Position> RigidBodyPosition;
+            public ComponentDataArray<PositionD> RigidBodyPosition;
 
             public void Execute(int index)
             {
-                Position p = RigidBodyPosition[index];
+                PositionD p = RigidBodyPosition[index];
                 p.Value = p.Value + (Velocity[index].Value * DeltaTime);
                 RigidBodyPosition[index] = p;
             }
@@ -108,13 +104,13 @@ namespace PhysicsEngine
         [BurstCompile]
         struct ProcessAngularVelocity : IJobParallelFor
         {
-            [ReadOnly] public float DeltaTime;
-            public ComponentDataArray<Rotation> RigidBodyRotation;
+            [ReadOnly] public double DeltaTime;
+            public ComponentDataArray<RotationD> RigidBodyRotation;
             [ReadOnly] public ComponentDataArray<AngularVelocity> AngularVelocity;
 
             public void Execute(int index)
             {
-                Rotation r = RigidBodyRotation[index];
+                RotationD r = RigidBodyRotation[index];
                 //r.Value = math.mul(math.euler(AngularVelocity[index].Value * DeltaTime), RigidBodyRotation[index].Value);
                 RigidBodyRotation[index] = r;
             }

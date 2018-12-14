@@ -1,8 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Unity.Entities;
-using Unity.Mathematics;
+﻿using Unity.Entities;
 using Unity.Transforms;
 
 public static class PhysicsEntityFactory
@@ -11,8 +7,10 @@ public static class PhysicsEntityFactory
     {
         return entityManager.CreateArchetype(
             typeof(PhysicsEngine.RigidBody),
-            typeof(Unity.Transforms.Position),
-            typeof(Unity.Transforms.Rotation),
+            typeof(PhysicsEngine.PositionD),
+            typeof(PhysicsEngine.RotationD),
+            typeof(Position),
+            typeof(Rotation),
             typeof(PhysicsEngine.Velocity),
             typeof(PhysicsEngine.AngularVelocity),
             typeof(PhysicsEngine.LinearDamping),
@@ -25,8 +23,10 @@ public static class PhysicsEntityFactory
     {
         return entityManager.CreateArchetype(
            typeof(PhysicsEngine.RigidBody),
-           typeof(Unity.Transforms.Position),
-           typeof(Unity.Transforms.Rotation),
+           typeof(PhysicsEngine.PositionD),
+           typeof(PhysicsEngine.RotationD),
+           typeof(Position),
+           typeof(Rotation),
            typeof(PhysicsEngine.Velocity),
            typeof(PhysicsEngine.AngularVelocity)
            );
@@ -39,8 +39,10 @@ public static class PhysicsEntityFactory
             typeof(PhysicsEngine.ColliderType),
             typeof(PhysicsEngine.SphereCollider),
             typeof(PhysicsEngine.AABB),
-            typeof(Unity.Transforms.Position),
-            typeof(Unity.Transforms.Rotation),
+            typeof(PhysicsEngine.PositionD),
+            typeof(PhysicsEngine.RotationD),
+            typeof(Position),
+            typeof(Rotation),
             typeof(PhysicsEngine.ColliderPhysicsProperties)
             );
     }
@@ -52,8 +54,10 @@ public static class PhysicsEntityFactory
             typeof(PhysicsEngine.ColliderType),
             typeof(PhysicsEngine.BoxCollider),
             typeof(PhysicsEngine.AABB),
-            typeof(Unity.Transforms.Position),
-            typeof(Unity.Transforms.Rotation),
+            typeof(PhysicsEngine.PositionD),
+            typeof(PhysicsEngine.RotationD),
+            typeof(Position),
+            typeof(Rotation),
             typeof(PhysicsEngine.ColliderPhysicsProperties)
             );
     }

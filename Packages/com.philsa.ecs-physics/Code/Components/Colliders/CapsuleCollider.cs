@@ -1,14 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Unity.Entities;
-using Unity.Mathematics;
+﻿using Unity.Entities;
 
 namespace PhysicsEngine
 {
     public struct CapsuleCollider : IComponentData
     {
-        public float Radius;
-        public float Height;
+        public double Radius;
+        public double Height;
     }
 }

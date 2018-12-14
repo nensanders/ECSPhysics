@@ -1,12 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Jobs;
 using Unity.Collections;
-using Unity.Transforms;
-using UnityEngine.Experimental.LowLevel;
 using Unity.Burst;
 
 namespace PhysicsEngine
@@ -18,7 +13,7 @@ namespace PhysicsEngine
         {
             public readonly int Length;
             public ComponentDataArray<SphereCollider> SphereCollider;
-            public ComponentDataArray<Unity.Transforms.Position> ColliderPosition;
+            public ComponentDataArray<PositionD> ColliderPosition;
             public ComponentDataArray<AABB> AABB;
         }
         [Inject] SphereColliderGroup _sphereColliders;
@@ -46,12 +41,12 @@ namespace PhysicsEngine
         struct ComputeShpereColliderAABB : IJobParallelFor
         {
             [ReadOnly] public ComponentDataArray<SphereCollider> SphereCollider;
-            [ReadOnly] public ComponentDataArray<Unity.Transforms.Position> ColliderPosition;
+            [ReadOnly] public ComponentDataArray<PositionD> ColliderPosition;
             public ComponentDataArray<AABB> AABB;
 
             public void Execute(int index)
             {
-                float3 halfSize = new float3(SphereCollider[index].Radius, SphereCollider[index].Radius, SphereCollider[index].Radius);
+                double3 halfSize = new double3(SphereCollider[index].Radius, SphereCollider[index].Radius, SphereCollider[index].Radius);
 
                 AABB aabb = AABB[index];
                 aabb.Min = ColliderPosition[index].Value - halfSize;
@@ -73,7 +68,7 @@ namespace PhysicsEngine
         //        float3 origHalfSize = BoxCollider[index].HalfSize;
 
         //        AABB aabb = new AABB();
-                
+
         //        aabb.Min = ColliderPosition[index].Value;
         //        aabb.Max = ColliderPosition[index].Value;
 

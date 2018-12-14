@@ -1,12 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Jobs;
 using Unity.Collections;
-using Unity.Transforms;
-using UnityEngine.Experimental.LowLevel;
 using Unity.Burst;
 
 namespace PhysicsEngine
@@ -16,7 +11,7 @@ namespace PhysicsEngine
     {
         [Inject] ComponentDataFromEntity<RigidBody> RigidBodyFromEntity;
         [Inject] ComponentDataFromEntity<Collider> ColliderFromEntity;
-        [Inject] ComponentDataFromEntity<Unity.Transforms.Position> ColliderPositionFromEntity;
+        [Inject] ComponentDataFromEntity<PositionD> ColliderPositionFromEntity;
         [Inject] ComponentDataFromEntity<ColliderPhysicsProperties> ColliderPhysicsPropertiesFromEntity;
         [Inject] ComponentDataFromEntity<SphereCollider> SphereColliderFromEntity;
         [Inject] ComponentDataFromEntity<Velocity> VelocityFromEntity;
@@ -37,7 +32,7 @@ namespace PhysicsEngine
             [NativeDisableParallelForRestriction]
             [ReadOnly] public ComponentDataFromEntity<Collider> ColliderFromEntity;
             [NativeDisableParallelForRestriction]
-            [ReadOnly] public ComponentDataFromEntity<Unity.Transforms.Position> ColliderPositionFromEntity;
+            [ReadOnly] public ComponentDataFromEntity<PositionD> ColliderPositionFromEntity;
             [NativeDisableParallelForRestriction]
             [ReadOnly] public ComponentDataFromEntity<ColliderPhysicsProperties> ColliderPhysicsPropertiesFromEntity;
             [NativeDisableParallelForRestriction]
@@ -54,24 +49,24 @@ namespace PhysicsEngine
                 Entity rigidBodyAEntity = collA.RigidBodyEntity;
                 Entity rigidBodyBEntity = collB.RigidBodyEntity;
 
-                float3 aPos = ColliderPositionFromEntity[collAEntity].Value;
-                float3 bPos = ColliderPositionFromEntity[collBEntity].Value;
-                float3 fromAToBVector = bPos - aPos;
-                if(math.lengthsq(fromAToBVector) == 0f)
+                double3 aPos = ColliderPositionFromEntity[collAEntity].Value;
+                double3 bPos = ColliderPositionFromEntity[collBEntity].Value;
+                double3 fromAToBVector = bPos - aPos;
+                if(math.lengthsq(fromAToBVector) < double.Epsilon)
                 {
-                    fromAToBVector = new float3(0f, 1f, 0f);
+                    fromAToBVector = new double3(0.0, 1.0, 0.0);
                 }
 
-                float overlapDistance = -math.length(fromAToBVector) + SphereColliderFromEntity[collAEntity].Radius + SphereColliderFromEntity[collBEntity].Radius;
+                double overlapDistance = -math.length(fromAToBVector) + SphereColliderFromEntity[collAEntity].Radius + SphereColliderFromEntity[collBEntity].Radius;
 
-                if (overlapDistance > 0f)
+                if (overlapDistance > 0.0)
                 {
-                    float3 relativeVelocity = VelocityFromEntity[collB.RigidBodyEntity].Value - VelocityFromEntity[collA.RigidBodyEntity].Value;
-                    float3 collisionNormalAToB = math.normalize(fromAToBVector);
+                    double3 relativeVelocity = VelocityFromEntity[collB.RigidBodyEntity].Value - VelocityFromEntity[collA.RigidBodyEntity].Value;
+                    double3 collisionNormalAToB = math.normalize(fromAToBVector);
 
                     bool aIsKinematic = RigidBodyFromEntity[collA.RigidBodyEntity].IsKinematic > 0;
                     bool bIsKinematic = RigidBodyFromEntity[collB.RigidBodyEntity].IsKinematic > 0;
-                    
+
                     if (!(aIsKinematic && bIsKinematic))
                     {
                         CollisionManifold manifold = new CollisionManifold()
@@ -123,7 +118,7 @@ namespace PhysicsEngine
                 CollisionManifoldsQueue = CollisionManifoldsQueue.ToConcurrent(),
             };
             var computeSphereSphereContacts = computeSphereSphereContactsJob.Schedule(PhysicsSystem.SphereSphereCollisionPairsArray.Length, PhysicsSystem.Settings.ContactsGenerationSystemBatchCount, inputDeps);
-            
+
             computeSphereSphereContacts.Complete();
             if (PhysicsSystem.CollisionManifoldsArray.IsCreated)
             {

@@ -16,10 +16,10 @@ namespace PhysicsEngine
     [UpdateAfter(typeof(UnityEngine.Experimental.PlayerLoop.FixedUpdate))]
     public class PhysicsSystem : JobComponentSystem
     {
-        public float DeltaTime;
+        public double DeltaTime;
 
         public PhysicsSettings Settings;
-        
+
         public NativeArray<CollisionPair> SphereSphereCollisionPairsArray;
         public NativeArray<CollisionPair> SphereBoxCollisionPairsArray;
         public NativeArray<CollisionPair> BoxBoxCollisionPairsArray;
